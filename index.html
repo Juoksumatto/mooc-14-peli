@@ -1,0 +1,127 @@
+import pygame
+ 
+class Sokoban:
+    def __init__(self):
+        pygame.init()
+        
+        self.lataa_kuvat()
+        self.uusi_peli()
+        
+        self.korkeus = len(self.kartta)
+        self.leveys = len(self.kartta[0])
+        self.skaala = self.kuvat[0].get_width()
+ 
+        nayton_korkeus = self.skaala * self.korkeus
+        nayton_leveys = self.skaala * self.leveys
+        self.naytto = pygame.display.set_mode((nayton_leveys, nayton_korkeus))
+ 
+        pygame.display.set_caption("Sokoban")
+ 
+        self.score = 0 
+        self.peli_loppui = False
+        
+        self.fontti = pygame.font.SysFont("Arial", 24) 
+ 
+        self.silmukka()
+ 
+    def lataa_kuvat(self):
+        self.kuvat = []
+        for nimi in ["src/ovi.png", "src/ovi.png", "src/kolikko.png", "src/hirvio.png", "src/robo.png"]:
+            self.kuvat.append(pygame.image.load(nimi))
+ 
+    def uusi_peli(self):
+        self.kartta = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                       [1, 2, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 1],
+                       [1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+                       [1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1],
+                       [1, 0, 4, 1, 0, 0, 0, 0, 1, 0, 1, 2, 1, 0, 0, 1, 1],
+                       [1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1],
+                       [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1],
+                       [1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+                       [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1],
+                       [1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+                       [1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+                       [1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1],
+                       [1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1],
+                       [1, 0, 2, 0, 1, 0, 1, 0, 2, 0, 0, 0, 1, 0, 0, 3, 1],
+                       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
+ 
+    def silmukka(self):
+        while True:
+            self.tutki_tapahtumat()
+            self.piirra_naytto()
+ 
+            if self.peli_loppui:
+                print("Peli loppui!")
+                pygame.time.wait(2000)
+                exit()
+ 
+    def etsi_robo(self):
+        for y in range(self.korkeus):
+            for x in range(self.leveys):
+                if self.kartta[y][x] in [4, 6]:
+                    return (y, x)
+ 
+    def liiku(self, liike_y, liike_x):
+        robon_vanha_y, robon_vanha_x = self.etsi_robo()
+        robon_uusi_y = robon_vanha_y + liike_y
+        robon_uusi_x = robon_vanha_x + liike_x
+ 
+        kohde = self.kartta[robon_uusi_y][robon_uusi_x]
+ 
+        if kohde == 1:
+            return
+ 
+        oli_kolikko = self.kartta[robon_vanha_y][robon_vanha_x] == 4 and self.kartta[robon_uusi_y][robon_uusi_x] == 2
+ 
+        if kohde == 2:
+            self.score += 1
+            self.kartta[robon_uusi_y][robon_uusi_x] = 4 
+        elif kohde == 3 and self.score >= 5:
+            self.peli_loppui = True
+        elif kohde in [3, 5]:
+            laatikon_uusi_y = robon_uusi_y + liike_y
+            laatikon_uusi_x = robon_uusi_x + liike_x
+ 
+            if self.kartta[laatikon_uusi_y][laatikon_uusi_x] in [1, 3, 5]:
+                return
+ 
+            self.kartta[robon_uusi_y][robon_uusi_x] -= 3
+            self.kartta[laatikon_uusi_y][laatikon_uusi_x] += 3
+            self.kartta[robon_uusi_y][robon_uusi_x] += 4 
+        else:
+            self.kartta[robon_uusi_y][robon_uusi_x] += 4 
+        if oli_kolikko:
+            self.kartta[robon_vanha_y][robon_vanha_x] = 0 
+        else:
+            self.kartta[robon_vanha_y][robon_vanha_x] -= 4
+ 
+    def tutki_tapahtumat(self):
+        for tapahtuma in pygame.event.get():
+            if tapahtuma.type == pygame.KEYDOWN:
+                if tapahtuma.key == pygame.K_LEFT:
+                    self.liiku(0, -1)
+                if tapahtuma.key == pygame.K_RIGHT:
+                    self.liiku(0, 1)
+                if tapahtuma.key == pygame.K_UP:
+                    self.liiku(-1, 0)
+                if tapahtuma.key == pygame.K_DOWN:
+                    self.liiku(1, 0)
+            if tapahtuma.type == pygame.QUIT:
+                exit()
+ 
+    def piirra_naytto(self):
+        self.naytto.fill((0, 0, 0))
+ 
+        for y in range(self.korkeus):
+            for x in range(self.leveys):
+                ruutu = self.kartta[y][x]
+                self.naytto.blit(self.kuvat[ruutu], (x * self.skaala, y * self.skaala))
+ 
+        teksti = self.fontti.render(f"Pisteet: {self.score}", True, (255, 255, 255))
+        self.naytto.blit(teksti, (10, 10))
+ 
+        pygame.display.flip()
+ 
+if __name__ == "__main__":
+    Sokoban()
